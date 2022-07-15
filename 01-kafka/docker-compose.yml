@@ -1,0 +1,39 @@
+version: '2'
+
+networks:
+  app-tier:
+    driver: bridge
+
+services:
+  zookeeper:
+    image: 'bitnami/zookeeper:3.6.3'
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    ports:
+      - 2181:2181
+    networks:
+      - app-tier
+  kafka:
+    image: 'bitnami/kafka:0.10.2-1-r3'
+    environment:
+      - KAFKA_BROKER_ID=1
+      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://:9092
+      - KAFKA_LISTENERS=PLAINTEXT://:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+    ports:
+      - 9092:9092
+    depends_on:
+      - zookeeper
+    networks:
+      - app-tier
+
+  kafka-exporter:
+    image: 'danielqsj/kafka-exporter:latest'
+    ports:
+      - 9308:9308
+    depends_on:
+      - kafka
+    networks:
+      - app-tier
+    command: ["--kafka.server=kafka:9092","--kafka.version=0.10.1.0","--zookeeper.server=zookeeper:2181","--log.enable-sarama"]            
